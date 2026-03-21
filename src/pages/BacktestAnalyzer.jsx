@@ -6,6 +6,8 @@ import {
   LineElement, BarElement, Title, Tooltip, Legend, Filler
 } from 'chart.js'
 import { parseTrades, getFullAnalysis } from '../utils/tradeAnalytics'
+import { extractTradesFromImage } from '../utils/ocrParser'
+import { extractTradesFromExcel } from '../utils/excelParser'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler)
 
@@ -17,7 +19,20 @@ const fmt = (n, decimals = 2) => {
 
 const fmtCurrency = (n) => {
   if (typeof n !== 'number' || isNaN(n)) return '—'
-  return (n >= 0 ? '+$' : '-$') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (n >= 0 ? '+₹' : '-₹') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif']
+const EXCEL_EXTENSIONS = ['xlsx', 'xls']
+
+function isImageFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase()
+  return IMAGE_EXTENSIONS.includes(ext)
+}
+
+function isExcelFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase()
+  return EXCEL_EXTENSIONS.includes(ext)
 }
 
 export default function BacktestAnalyzer() {
@@ -27,10 +42,13 @@ export default function BacktestAnalyzer() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
 
-  const handleFile = useCallback((file) => {
-    if (!file) return
-    setError(null)
+  // OCR-specific state
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(0)
+  const [ocrPreview, setOcrPreview] = useState(null) // { rows, headers, rawText, ... }
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null)
 
+  const handleCsvFile = useCallback((file) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -48,6 +66,129 @@ export default function BacktestAnalyzer() {
         }
       },
       error: (err) => setError('CSV parsing error: ' + err.message),
+    })
+  }, [])
+
+  const handleImageFile = useCallback(async (file) => {
+    setOcrLoading(true)
+    setOcrProgress(0)
+    setError(null)
+    setImagePreviewUrl(URL.createObjectURL(file))
+
+    try {
+      const result = await extractTradesFromImage(file, (progress) => {
+        setOcrProgress(progress)
+      })
+
+      if (result.dataRowsExtracted < 1) {
+        setError('No trade data could be extracted from the image. Try a clearer screenshot of a table with columns: date, type, price, quantity, pnl')
+        setOcrLoading(false)
+        setImagePreviewUrl(null)
+        return
+      }
+
+      setOcrPreview(result)
+    } catch (e) {
+      setError('OCR failed: ' + e.message)
+      setImagePreviewUrl(null)
+    } finally {
+      setOcrLoading(false)
+    }
+  }, [])
+
+  const handleExcelFile = useCallback(async (file) => {
+    setOcrLoading(true)
+    setOcrProgress(100)
+    setError(null)
+    setImagePreviewUrl(null)
+
+    try {
+      const result = await extractTradesFromExcel(file)
+
+      if (result.dataRowsExtracted < 1) {
+        setError('No trade data could be extracted from the Excel file.')
+        setOcrLoading(false)
+        return
+      }
+
+      setOcrPreview(result)
+    } catch (e) {
+      setError('Excel processing failed: ' + e.message)
+    } finally {
+      setOcrLoading(false)
+    }
+  }, [])
+
+  const handleFile = useCallback((file) => {
+    if (!file) return
+    setError(null)
+    setOcrPreview(null)
+    setImagePreviewUrl(null)
+
+    if (isImageFile(file)) {
+      handleImageFile(file)
+    } else if (isExcelFile(file)) {
+      handleExcelFile(file)
+    } else {
+      handleCsvFile(file)
+    }
+  }, [handleCsvFile, handleImageFile, handleExcelFile])
+
+  const confirmOcrData = useCallback(() => {
+    if (!ocrPreview) return
+    try {
+      const parsed = parseTrades(ocrPreview.rows)
+      if (parsed.length < 3) {
+        setError('Only ' + parsed.length + ' valid trades extracted. Need at least 3. Try a clearer image.')
+        return
+      }
+      setTrades(parsed)
+      setAnalysis(getFullAnalysis(parsed))
+      setOcrPreview(null)
+      setImagePreviewUrl(null)
+    } catch (e) {
+      setError('Failed to process extracted data: ' + e.message)
+    }
+  }, [ocrPreview])
+
+  const resetOcr = useCallback(() => {
+    setOcrPreview(null)
+    setOcrLoading(false)
+    setOcrProgress(0)
+    setImagePreviewUrl(null)
+    setError(null)
+  }, [])
+
+  const handleOcrCellEdit = useCallback((rowIndex, header, value) => {
+    setOcrPreview(prev => {
+      if (!prev) return prev
+      const newRows = [...prev.rows]
+      newRows[rowIndex] = { ...newRows[rowIndex], [header]: value }
+      return { ...prev, rows: newRows }
+    })
+  }, [])
+
+  const handleOcrRowDelete = useCallback((rowIndex) => {
+    setOcrPreview(prev => {
+      if (!prev) return prev
+      const newRows = [...prev.rows]
+      newRows.splice(rowIndex, 1)
+      return { ...prev, rows: newRows, dataRowsExtracted: newRows.length }
+    })
+  }, [])
+
+  const handleOcrRowAdd = useCallback(() => {
+    setOcrPreview(prev => {
+      if (!prev) return prev
+      const emptyRow = {}
+      prev.headers.forEach(h => emptyRow[h] = '')
+      const newRows = [...prev.rows, emptyRow]
+      // Try to auto-scroll down to see new row
+      setTimeout(() => {
+        const tableContainer = document.getElementById('ocr-preview-container')
+        if (tableContainer) tableContainer.scrollTop = tableContainer.scrollHeight
+      }, 50)
+      return { ...prev, rows: newRows, dataRowsExtracted: newRows.length }
     })
   }, [])
 
@@ -175,6 +316,209 @@ export default function BacktestAnalyzer() {
     }
   }
 
+  // === OCR Loading Screen ===
+  if (ocrLoading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 animate-fade-in-up">
+          <h1 className="text-3xl md:text-4xl font-serif tracking-tight mb-2">
+            <span className="gradient-text">Processing Image</span>
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>
+            Extracting trade data from your screenshot...
+          </p>
+        </div>
+
+        <div className="glass-card-static p-8 text-center animate-fade-in-up stagger-1">
+          {imagePreviewUrl && (
+            <div className="mb-6 mx-auto" style={{ maxWidth: '400px' }}>
+              <img
+                src={imagePreviewUrl}
+                alt="Uploaded trade table"
+                className="rounded-xl w-full"
+                style={{ border: '1px solid var(--color-border)', opacity: 0.6 }}
+              />
+            </div>
+          )}
+
+          <div className="text-5xl mb-4 animate-pulse">🔍</div>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+            Running OCR Analysis
+          </h3>
+
+          {/* Progress bar */}
+          <div className="mx-auto mb-3" style={{ maxWidth: '300px' }}>
+            <div className="progress-bar" style={{ height: '8px' }}>
+              <div
+                className="progress-bar-fill"
+                style={{
+                  width: `${ocrProgress}%`,
+                  background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-light))',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            {ocrProgress < 30 ? 'Loading OCR engine...' :
+              ocrProgress < 90 ? `Recognizing text... ${ocrProgress}%` :
+                'Finishing up...'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // === OCR Preview Screen ===
+  if (ocrPreview) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8 animate-fade-in-up">
+          <h1 className="text-3xl md:text-4xl font-serif tracking-tight mb-2">
+            <span className="gradient-text">Review Extracted Data</span>
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)' }}>
+            {ocrPreview.dataRowsExtracted} trade rows extracted from image • Review and confirm
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 animate-fade-in-up stagger-1">
+          {imagePreviewUrl && (
+            <div className="glass-card-static p-4">
+              <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-muted)' }}>Source Image</h4>
+              <img
+                src={imagePreviewUrl}
+                alt="Source trade table"
+                className="rounded-lg w-full"
+                style={{ border: '1px solid var(--color-border)' }}
+              />
+            </div>
+          )}
+          <div className={`glass-card-static p-4 ${imagePreviewUrl ? 'md:col-span-2' : 'md:col-span-3'}`}>
+            <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-muted)' }}>
+              Extracted Trades ({ocrPreview.dataRowsExtracted} rows)
+            </h4>
+            <div id="ocr-preview-container" style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>#</th>
+                    {ocrPreview.headers.map((h, i) => (
+                      <th key={i} style={{
+                        ...thStyle,
+                        color: ['date', 'type', 'price', 'quantity', 'pnl'].includes(h)
+                          ? 'var(--color-accent-light)' : 'var(--color-text-muted)'
+                      }}>
+                        {h}
+                        {['date', 'type', 'price', 'quantity', 'pnl'].includes(h) && ' ✓'}
+                      </th>
+                    ))}
+                    <th style={{ ...thStyle, width: '32px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ocrPreview.rows.slice(0, 50).map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={tdStyle}>{i + 1}</td>
+                      {ocrPreview.headers.map((h, j) => (
+                        <td key={j} style={{ ...tdStyle, padding: '4px 8px' }}>
+                          <input
+                            type="text"
+                            value={row[h] !== undefined && row[h] !== null ? row[h] : ''}
+                            onChange={(e) => handleOcrCellEdit(i, h, e.target.value)}
+                            title="Click to edit"
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid transparent',
+                              color: h === 'pnl'
+                                ? (parseFloat(row[h]) >= 0 ? 'var(--color-green)' : 'var(--color-red)')
+                                : 'var(--color-text-secondary)',
+                              width: '100%',
+                              minWidth: '60px',
+                              outline: 'none',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s',
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.background = 'rgba(255,255,255,0.05)'
+                              e.target.style.border = '1px solid var(--color-border)'
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.background = 'transparent'
+                              e.target.style.border = '1px solid transparent'
+                            }}
+                          />
+                        </td>
+                      ))}
+                      <td style={{ ...tdStyle, textAlign: 'center', padding: '4px' }}>
+                        <button
+                          onClick={() => handleOcrRowDelete(i)}
+                          title="Delete Row"
+                          className="w-6 h-6 rounded flex items-center justify-center transition-colors hover:bg-red-500/20"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="mt-4 mb-2 flex justify-center">
+                <button
+                  onClick={handleOcrRowAdd}
+                  className="px-4 py-1.5 text-xs font-medium rounded hover:bg-white/5 transition-colors"
+                  style={{ border: '1px dashed var(--color-border)', color: 'var(--color-text-secondary)' }}
+                >
+                  + Add Row
+                </button>
+              </div>
+
+              {ocrPreview.rows.length > 50 && (
+                <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
+                  Showing first 50 of {ocrPreview.rows.length} rows
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-4 rounded-xl animate-fade-in"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-red-light)' }}>⚠️ {error}</p>
+          </div>
+        )}
+
+        <div className="flex gap-4 justify-center animate-fade-in-up stagger-2">
+          <button onClick={resetOcr}
+            className="px-6 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105"
+            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+            ← Try Another Image
+          </button>
+          <button onClick={confirmOcrData} className="glow-btn" id="confirm-ocr-btn">
+            ✓ Looks Good — Analyze {ocrPreview.dataRowsExtracted} Trades
+          </button>
+        </div>
+
+        <div className="mt-6 glass-card-static p-4 animate-fade-in-up stagger-3">
+          <details>
+            <summary className="text-sm font-medium cursor-pointer" style={{ color: 'var(--color-text-muted)' }}>
+              🔍 View Raw OCR Text
+            </summary>
+            <pre className="mt-3 text-xs p-4 rounded-lg overflow-auto"
+              style={{ background: 'rgba(0,0,0,0.3)', color: 'var(--color-text-secondary)', maxHeight: '200px', whiteSpace: 'pre-wrap' }}>
+              {ocrPreview.rawText}
+            </pre>
+          </details>
+        </div>
+      </div>
+    )
+  }
+
+  // === Upload Screen ===
   if (!analysis) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -197,15 +541,28 @@ export default function BacktestAnalyzer() {
         >
           <div className="text-5xl mb-4">📁</div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-            Drop your trade CSV here
+            Drop your trade file here
           </h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>
-            or click to browse • Expected columns: date, type, price, quantity, pnl
+          <p className="text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>
+            or click to browse
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <span className="px-3 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              📄 CSV / Excel File
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-green)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              🖼️ Screenshot (OCR)
+            </span>
+          </div>
+          <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+            CSV/Excel: columns date, type, price, quantity, pnl • Image: screenshot of a trade results table
           </p>
           <input
             id="csv-input"
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.gif"
             onChange={handleFileInput}
             className="hidden"
           />
@@ -213,7 +570,7 @@ export default function BacktestAnalyzer() {
 
         {error && (
           <div className="mt-4 p-4 rounded-xl animate-fade-in"
-               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
             <p className="text-sm" style={{ color: 'var(--color-red-light)' }}>⚠️ {error}</p>
           </div>
         )}
@@ -246,7 +603,7 @@ export default function BacktestAnalyzer() {
           </p>
         </div>
         <button
-          onClick={() => { setTrades(null); setAnalysis(null) }}
+          onClick={() => { setTrades(null); setAnalysis(null); resetOcr() }}
           className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
           style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
@@ -261,7 +618,7 @@ export default function BacktestAnalyzer() {
           { label: 'Total PnL', value: fmtCurrency(analysis.totalPnL), color: analysis.totalPnL >= 0 ? 'var(--color-green)' : 'var(--color-red)' },
           { label: 'Profit Factor', value: fmt(analysis.profitFactor), color: analysis.profitFactor >= 1.5 ? 'var(--color-green)' : analysis.profitFactor >= 1 ? 'var(--color-yellow)' : 'var(--color-red)' },
           { label: 'Sharpe Ratio', value: fmt(analysis.sharpeRatio), color: analysis.sharpeRatio >= 1 ? 'var(--color-green)' : 'var(--color-yellow)' },
-          { label: 'Max Drawdown', value: `$${fmt(analysis.maxDrawdown, 0)}`, color: 'var(--color-red)' },
+          { label: 'Max Drawdown', value: `₹${fmt(analysis.maxDrawdown, 0)}`, color: 'var(--color-red)' },
           { label: 'Avg Win/Loss', value: `${fmt(analysis.avgWin, 0)} / ${fmt(analysis.avgLoss, 0)}`, color: 'var(--color-text-secondary)' },
         ].map((stat, i) => (
           <div key={stat.label} className={`stat-card animate-fade-in-up stagger-${i + 1}`}>
@@ -332,7 +689,7 @@ export default function BacktestAnalyzer() {
                 {[
                   { label: 'Sharpe Ratio', value: fmt(analysis.sharpeRatio), good: analysis.sharpeRatio >= 1 },
                   { label: 'Profit Factor', value: fmt(analysis.profitFactor), good: analysis.profitFactor >= 1.5 },
-                  { label: 'Max Drawdown', value: `$${fmt(analysis.maxDrawdown, 0)} (${fmt(analysis.maxDrawdownPct, 1)}%)`, good: false },
+                  { label: 'Max Drawdown', value: `₹${fmt(analysis.maxDrawdown, 0)} (${fmt(analysis.maxDrawdownPct, 1)}%)`, good: false },
                   { label: 'Max Win Streak', value: analysis.conditions.maxWinStreak, good: true },
                   { label: 'Max Loss Streak', value: analysis.conditions.maxLossStreak, good: false },
                   { label: 'Risk:Reward', value: analysis.avgLoss !== 0 ? fmt(Math.abs(analysis.avgWin / analysis.avgLoss)) + ':1' : '—', good: Math.abs(analysis.avgWin / analysis.avgLoss) >= 1.5 },
@@ -388,8 +745,8 @@ export default function BacktestAnalyzer() {
                 {analysis.monteCarlo.profitablePct >= 70
                   ? '✅ Your strategy shows a robust edge. Over 70% of randomized simulations are profitable, suggesting your results aren\'t due to luck.'
                   : analysis.monteCarlo.profitablePct >= 50
-                  ? '⚠️ Your strategy shows a slight edge, but there\'s meaningful variance. Consider a larger sample size or tighter risk management.'
-                  : '❌ The Monte Carlo results suggest your profits may be largely due to lucky ordering of trades. Exercise caution.'}
+                    ? '⚠️ Your strategy shows a slight edge, but there\'s meaningful variance. Consider a larger sample size or tighter risk management.'
+                    : '❌ The Monte Carlo results suggest your profits may be largely due to lucky ordering of trades. Exercise caution.'}
               </p>
             </div>
           </div>
@@ -411,7 +768,7 @@ export default function BacktestAnalyzer() {
               <div className="space-y-4">
                 {Object.entries(analysis.conditions.byType).map(([type, data]) => (
                   <div key={type} className="flex items-center justify-between p-3 rounded-xl"
-                       style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    style={{ background: 'rgba(255,255,255,0.02)' }}>
                     <div>
                       <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{type}</span>
                       <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>({data.trades} trades)</span>
@@ -447,4 +804,23 @@ export default function BacktestAnalyzer() {
       </div>
     </div>
   )
+}
+
+// Table styles for OCR preview
+const thStyle = {
+  padding: '8px 12px',
+  textAlign: 'left',
+  borderBottom: '1px solid rgba(255,255,255,0.1)',
+  color: 'var(--color-text-muted)',
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  position: 'sticky',
+  top: 0,
+  background: 'var(--color-bg-card)',
+}
+
+const tdStyle = {
+  padding: '6px 12px',
+  whiteSpace: 'nowrap',
+  color: 'var(--color-text-secondary)',
 }

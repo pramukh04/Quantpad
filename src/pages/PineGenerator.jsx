@@ -104,7 +104,7 @@ export default function PineGenerator() {
                   <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-muted)' }}>Try these examples:</p>
                   {result.suggestions.map(s => (
                     <button key={s} onClick={() => setDescription(s)} className="block text-sm mb-1.5 hover:underline text-left"
-                            style={{ color: 'var(--color-accent-light)' }}>
+                      style={{ color: 'var(--color-accent-light)' }}>
                       → {s}
                     </button>
                   ))}
@@ -127,15 +127,15 @@ export default function PineGenerator() {
                   <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Pine Script v5</span>
                   <div className="flex items-center gap-2">
                     <button onClick={copyToClipboard}
-                            className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                            style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}
-                            id="pine-copy-btn">
+                      className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+                      style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}
+                      id="pine-copy-btn">
                       {copied ? '✓ Copied!' : '📋 Copy'}
                     </button>
                     <button onClick={downloadScript}
-                            className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                            style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-green-light)' }}
-                            id="pine-download-btn">
+                      className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+                      style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--color-green-light)' }}
+                      id="pine-download-btn">
                       ⬇ Download .pine
                     </button>
                   </div>
@@ -150,14 +150,14 @@ export default function PineGenerator() {
                         color: line.startsWith('//')
                           ? 'var(--color-text-muted)'
                           : line.includes('strategy.') || line.includes('ta.')
-                          ? 'var(--color-cyan)'
-                          : line.includes('plot') || line.includes('bgcolor') || line.includes('alertcondition')
-                          ? 'var(--color-purple)'
-                          : line.includes('if ')
-                          ? 'var(--color-yellow)'
-                          : line.includes('=')
-                          ? 'var(--color-accent-light)'
-                          : 'var(--color-text-primary)'
+                            ? 'var(--color-cyan)'
+                            : line.includes('plot') || line.includes('bgcolor') || line.includes('alertcondition')
+                              ? 'var(--color-purple)'
+                              : line.includes('if ')
+                                ? 'var(--color-yellow)'
+                                : line.includes('=')
+                                  ? 'var(--color-accent-light)'
+                                  : 'var(--color-text-primary)'
                       }}>
                         {line}
                       </span>
@@ -179,7 +179,7 @@ export default function PineGenerator() {
                   ].map((step, i) => (
                     <li key={i} className="flex gap-3">
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                            style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}>
+                        style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}>
                         {i + 1}
                       </span>
                       {step}

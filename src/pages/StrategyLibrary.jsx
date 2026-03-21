@@ -17,8 +17,8 @@ export default function StrategyLibrary() {
   const filtered = useMemo(() => {
     return strategies.filter(s => {
       if (search && !s.name.toLowerCase().includes(search.toLowerCase()) &&
-          !s.description.toLowerCase().includes(search.toLowerCase()) &&
-          !s.indicators.some(ind => ind.toLowerCase().includes(search.toLowerCase()))) return false
+        !s.description.toLowerCase().includes(search.toLowerCase()) &&
+        !s.indicators.some(ind => ind.toLowerCase().includes(search.toLowerCase()))) return false
       if (selectedCategory !== 'All' && s.category !== selectedCategory) return false
       if (selectedDifficulty !== 'All' && s.difficulty !== selectedDifficulty) return false
       return true
@@ -48,8 +48,8 @@ export default function StrategyLibrary() {
     return (
       <div className="max-w-4xl mx-auto">
         <button onClick={() => setSelectedStrategy(null)}
-                className="mb-6 text-sm flex items-center gap-2 hover:underline animate-fade-in"
-                style={{ color: 'var(--color-accent-light)' }}>
+          className="mb-6 text-sm flex items-center gap-2 hover:underline animate-fade-in"
+          style={{ color: 'var(--color-accent-light)' }}>
           ← Back to Library
         </button>
 
@@ -65,12 +65,12 @@ export default function StrategyLibrary() {
               <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{s.description}</p>
             </div>
             <button onClick={() => handleVote(s.id)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-105"
-                    style={{
-                      background: voted[s.id] ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${voted[s.id] ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                      color: voted[s.id] ? 'var(--color-accent-light)' : 'var(--color-text-secondary)',
-                    }}>
+              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-105"
+              style={{
+                background: voted[s.id] ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${voted[s.id] ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                color: voted[s.id] ? 'var(--color-accent-light)' : 'var(--color-text-secondary)',
+              }}>
               <span>{voted[s.id] ? '▲' : '△'}</span>
               <span className="font-semibold">{votes[s.id]}</span>
             </button>
@@ -119,8 +119,8 @@ export default function StrategyLibrary() {
               <div className="code-block-header">
                 <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Pine Script v5</span>
                 <button onClick={() => copyCode(s.pineScript)}
-                        className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                        style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}>
+                  className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+                  style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--color-accent-light)' }}>
                   {copied ? '✓ Copied!' : '📋 Copy'}
                 </button>
               </div>
@@ -134,16 +134,16 @@ export default function StrategyLibrary() {
                       color: line.startsWith('//')
                         ? 'var(--color-text-muted)'
                         : line.includes('strategy.') || line.includes('ta.')
-                        ? 'var(--color-cyan)'
-                        : line.includes('plot') || line.includes('bgcolor') || line.includes('hline')
-                        ? 'var(--color-purple)'
-                        : line.includes('if ')
-                        ? 'var(--color-yellow)'
-                        : line.includes('input.')
-                        ? 'var(--color-green)'
-                        : line.includes('=')
-                        ? 'var(--color-accent-light)'
-                        : 'var(--color-text-primary)'
+                          ? 'var(--color-cyan)'
+                          : line.includes('plot') || line.includes('bgcolor') || line.includes('hline')
+                            ? 'var(--color-purple)'
+                            : line.includes('if ')
+                              ? 'var(--color-yellow)'
+                              : line.includes('input.')
+                                ? 'var(--color-green)'
+                                : line.includes('=')
+                                  ? 'var(--color-accent-light)'
+                                  : 'var(--color-text-primary)'
                     }}>
                       {line}
                     </span>
@@ -232,11 +232,11 @@ export default function StrategyLibrary() {
                 </div>
               </div>
               <button onClick={(e) => { e.stopPropagation(); handleVote(s.id) }}
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
-                      style={{
-                        background: voted[s.id] ? 'rgba(99,102,241,0.15)' : 'transparent',
-                        color: voted[s.id] ? 'var(--color-accent-light)' : 'var(--color-text-muted)',
-                      }}>
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
+                style={{
+                  background: voted[s.id] ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  color: voted[s.id] ? 'var(--color-accent-light)' : 'var(--color-text-muted)',
+                }}>
                 {voted[s.id] ? '▲' : '△'} {votes[s.id]}
               </button>
             </div>
@@ -262,7 +262,7 @@ export default function StrategyLibrary() {
             <div className="mt-3 flex flex-wrap gap-1.5">
               {s.indicators.slice(0, 3).map(ind => (
                 <span key={ind} className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--color-text-muted)' }}>
+                  style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--color-text-muted)' }}>
                   {ind}
                 </span>
               ))}

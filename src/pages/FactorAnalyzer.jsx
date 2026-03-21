@@ -157,9 +157,9 @@ export default function FactorAnalyzer() {
               <input type="file" accept=".csv" onChange={e => handleFile(e.target.files[0])} className="hidden" />
             </label>
             <button onClick={loadSample}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105"
-                    style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-                    id="factor-sample-btn">
+              className="px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105"
+              style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              id="factor-sample-btn">
               Use Sample Data (300 trades)
             </button>
           </div>
@@ -189,8 +189,8 @@ export default function FactorAnalyzer() {
           </p>
         </div>
         <button onClick={() => { setTrades(null); setAnalysis(null) }}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
-                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
+          style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
           New Analysis
         </button>
       </div>
@@ -202,7 +202,7 @@ export default function FactorAnalyzer() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {analysis.insights.map((insight, i) => (
               <div key={i} className="glass-card-static p-5"
-                   style={{ borderLeft: `3px solid ${insight.actionable ? 'var(--color-green)' : 'var(--color-yellow)'}` }}>
+                style={{ borderLeft: `3px solid ${insight.actionable ? 'var(--color-green)' : 'var(--color-yellow)'}` }}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{insight.factor}</span>
                   {sigBadge(insight.significance)}
@@ -248,11 +248,11 @@ export default function FactorAnalyzer() {
             <tbody>
               {analysis.factors.slice(0, 30).map((factor, i) => (
                 <tr key={factor.name} className="transition-colors hover:bg-white/[0.02]"
-                    style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td className="px-6 py-3 font-mono text-xs" style={{ color: 'var(--color-text-muted)' }}>#{i + 1}</td>
                   <td className="px-6 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{factor.name}</td>
                   <td className="px-6 py-3 text-right font-mono font-semibold"
-                      style={{ color: factor.correlation > 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
+                    style={{ color: factor.correlation > 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
                     {factor.correlation > 0 ? '+' : ''}{factor.correlation.toFixed(4)}
                   </td>
                   <td className="px-6 py-3 text-center">{sigBadge(factor.significance)}</td>

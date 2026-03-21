@@ -67,16 +67,16 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto relative font-sans text-slate-300">
-      
+
       {/* ── HERO SECTION ── */}
       <section className="relative overflow-hidden rounded-3xl mb-24 animate-fade-in-up bg-[#0f111a] border border-[#1e2433] shadow-2xl">
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-20"
-             style={{ backgroundImage: 'linear-gradient(#1e2433 1px, transparent 1px), linear-gradient(90deg, #1e2433 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          style={{ backgroundImage: 'linear-gradient(#1e2433 1px, transparent 1px), linear-gradient(90deg, #1e2433 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
         <div className="relative z-10 px-8 py-20 lg:px-20 lg:py-28">
           <div className="flex flex-col lg:flex-row items-center gap-16 xl:gap-24">
-            
+
             {/* Left: Text */}
             <div className="flex-1 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 bg-blue-500/10 border border-blue-500/20">
@@ -102,11 +102,11 @@ export default function Dashboard() {
                 <Link to="/backtest" className="bg-slate-100 hover:bg-white text-slate-900 font-medium text-sm px-8 py-4 rounded-xl inline-flex items-center gap-2 transition-colors shadow-lg shadow-slate-100/10">
                   <span>Start Analysis</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                    <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 </Link>
                 <Link to="/strategies"
-                      className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium text-sm px-8 py-4 rounded-xl inline-flex items-center gap-2 transition-colors">
+                  className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium text-sm px-8 py-4 rounded-xl inline-flex items-center gap-2 transition-colors">
                   View Strategy Models
                 </Link>
               </div>
@@ -127,7 +127,7 @@ export default function Dashboard() {
                 {/* Balance */}
                 <div className="flex items-baseline gap-4">
                   <span className="text-4xl font-light tracking-tight text-slate-100 font-serif">
-                    $<AnimatedNumber value="124850" />
+                    ₹<AnimatedNumber value="124850" />
                   </span>
                   <span className="text-sm font-medium text-emerald-400">
                     +<AnimatedNumber value="24" suffix="%" /> YTD
@@ -142,7 +142,7 @@ export default function Dashboard() {
                 {/* Mini stats row */}
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
                   {[
-                    { label: 'Expectancy', value: '$24.50', color: '#10b981', spark: spark2, sc: '#10b981' },
+                    { label: 'Expectancy', value: '₹24.50', color: '#10b981', spark: spark2, sc: '#10b981' },
                     { label: 'Sharpe', value: '1.87', color: '#3b82f6', spark: spark3, sc: '#3b82f6' },
                     { label: 'Profit Factor', value: '2.14', color: '#f8fafc', spark: spark1, sc: '#94a3b8' },
                   ].map((s) => (
@@ -150,7 +150,7 @@ export default function Dashboard() {
                       <p className="text-[10px] uppercase font-medium tracking-wider text-slate-500">{s.label}</p>
                       <p className="text-sm font-medium" style={{ color: s.color }}>{s.value}</p>
                       <div className="mt-1 opacity-60">
-                         <Sparkline data={s.spark} color={s.sc} height={16} width={90} />
+                        <Sparkline data={s.spark} color={s.sc} height={16} width={90} />
                       </div>
                     </div>
                   ))}
@@ -187,7 +187,7 @@ export default function Dashboard() {
           <h2 className="text-2xl md:text-3xl font-serif text-slate-200 mb-4">The Processing Pipeline</h2>
           <p className="text-slate-400 max-w-xl mx-auto">A transparent, step-by-step lifecycle for strict quantitative analysis.</p>
         </div>
-        
+
         <div className="flex flex-col gap-8">
           {workflow.map((w, i) => (
             <div key={w.step} className="group relative p-8 md:p-10 rounded-2xl bg-[#0f111a] border border-slate-800 hover:border-slate-700 transition-colors flex flex-col md:flex-row items-start md:items-center gap-6 shadow-sm">
@@ -198,7 +198,7 @@ export default function Dashboard() {
                 <h3 className="text-xl font-medium mb-2 text-slate-200">{w.title}</h3>
                 <p className="text-base text-slate-400 leading-relaxed">{w.desc}</p>
               </div>
-              
+
               {/* Optional connector for desktop simply styled */}
               {i < 3 && (
                 <div className="hidden md:block absolute -bottom-8 left-16 w-px h-8 bg-slate-800" />
@@ -224,7 +224,7 @@ export default function Dashboard() {
             <Link to="/backtest" className="bg-blue-600 hover:bg-blue-500 text-white font-medium text-base px-10 py-4 rounded-xl inline-flex items-center gap-3 transition-colors">
               <span>Import Trade Data</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
+                <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </Link>
           </div>

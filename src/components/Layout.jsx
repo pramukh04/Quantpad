@@ -45,7 +45,7 @@ export default function Layout() {
         <div className="p-6 pb-4">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-                 style={{ background: 'linear-gradient(135deg, var(--color-accent), var(--color-cyan))' }}>
+              style={{ background: 'linear-gradient(135deg, var(--color-accent), var(--color-cyan))' }}>
               ⚡
             </div>
             <div>
@@ -57,7 +57,7 @@ export default function Layout() {
 
         <div className="px-2 mt-2">
           <p className="px-5 mb-2 text-xs font-semibold uppercase tracking-wider"
-             style={{ color: 'var(--color-text-muted)' }}>
+            style={{ color: 'var(--color-text-muted)' }}>
             Tools
           </p>
           <nav className="flex flex-col gap-0.5">

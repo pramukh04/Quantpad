@@ -1,25 +1,54 @@
 // ===== Trade Analytics Utility Functions =====
 
 /**
+ * Clean and fuzzy-match trade types (handles OCR hallucinations like 'SELEE' -> 'SELL')
+ */
+function cleanTradeType(raw) {
+  if (!raw) return 'UNKNOWN'
+  const t = String(raw).toUpperCase().trim()
+  if (t === 'B' || t.includes('BUY') || t.includes('LONG')) return 'BUY'
+  if (t === 'S' || t.includes('SELL') || t.includes('SHORT')) return 'SELL'
+
+  // OCR fuzzy match fallbacks
+  if (/^S[EI][LREI]+/.test(t)) return 'SELL'
+  if (/^[8B]U[YV]/.test(t)) return 'BUY'
+
+  return t
+}
+
+/**
  * Parse CSV trade data into structured objects
  * Expected columns: date, type, price, quantity, pnl
  * Also supports: symbol, volume, duration
  */
 export function parseTrades(rows) {
+  const baseDate = new Date()
+  baseDate.setHours(9, 30, 0, 0) // Fallback start time
+
   return rows
     .filter(row => row.pnl !== undefined && row.pnl !== '' && row.pnl !== null)
-    .map((row, i) => ({
-      id: i,
-      date: new Date(row.date || row.Date || row.DATE),
-      type: (row.type || row.Type || row.TYPE || row.side || row.Side || '').toUpperCase(),
-      price: parseFloat(row.price || row.Price || row.PRICE || 0),
-      quantity: parseFloat(row.quantity || row.Quantity || row.qty || row.Qty || row.size || row.Size || 1),
-      pnl: parseFloat(row.pnl || row.PnL || row.PNL || row.profit || row.Profit || 0),
-      symbol: row.symbol || row.Symbol || row.ticker || row.Ticker || 'N/A',
-      volume: parseFloat(row.volume || row.Volume || 0) || null,
-      duration: parseFloat(row.duration || row.Duration || row.holding_time || 0) || null,
-    }))
-    .filter(t => !isNaN(t.pnl) && !isNaN(t.date.getTime()))
+    .map((row, i) => {
+      const rawDate = row.date || row.Date || row.DATE
+      let d = rawDate ? new Date(rawDate) : new Date(NaN)
+
+      // Auto-generate a valid sequential date if missing/invalid
+      if (isNaN(d.getTime())) {
+        d = new Date(baseDate.getTime() + i * 60000) // Increment by 1 minute per trade
+      }
+
+      return {
+        id: i,
+        date: d,
+        type: cleanTradeType(row.type || row.Type || row.TYPE || row.side || row.Side),
+        price: parseFloat(row.price || row.Price || row.PRICE || 0),
+        quantity: parseFloat(row.quantity || row.Quantity || row.qty || row.Qty || row.size || row.Size || 1),
+        pnl: parseFloat(row.pnl || row.PnL || row.PNL || row.profit || row.Profit || 0),
+        symbol: row.symbol || row.Symbol || row.ticker || row.Ticker || 'N/A',
+        volume: parseFloat(row.volume || row.Volume || 0) || null,
+        duration: parseFloat(row.duration || row.Duration || row.holding_time || 0) || null,
+      }
+    })
+    .filter(t => !isNaN(t.pnl))
     .sort((a, b) => a.date - b.date)
 }
 
@@ -118,11 +147,11 @@ export function runMonteCarlo(trades, numSims = 1000) {
   const results = []
 
   for (let sim = 0; sim < numSims; sim++) {
-    // Shuffle pnls
-    const shuffled = [...pnls]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    // Random sampling WITH replacement
+    const shuffled = []
+    for (let i = 0; i < pnls.length; i++) {
+      const randomIndex = Math.floor(Math.random() * pnls.length)
+      shuffled.push(pnls[randomIndex])
     }
 
     // Build equity curve

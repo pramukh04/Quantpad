@@ -96,7 +96,7 @@ export default function PropSimulator() {
         cornerRadius: 8,
         padding: 12,
         callbacks: {
-          label: (ctx) => `$${ctx.parsed.y.toLocaleString()}`
+          label: (ctx) => `₹${ctx.parsed.y.toLocaleString()}`
         }
       },
     },
@@ -104,7 +104,7 @@ export default function PropSimulator() {
       x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { family: 'Inter' } } },
       y: {
         grid: { color: 'rgba(255,255,255,0.03)' },
-        ticks: { color: '#64748b', font: { family: 'Inter' }, callback: v => `$${(v / 1000).toFixed(0)}K` }
+        ticks: { color: '#64748b', font: { family: 'Inter' }, callback: v => `₹${(v / 1000).toFixed(0)}K` }
       },
     }
   }
@@ -149,8 +149,8 @@ export default function PropSimulator() {
             <div className="grid grid-cols-2 gap-2">
               {CHALLENGE_PRESETS.map(preset => (
                 <button key={preset.name} onClick={() => loadPreset(preset)}
-                        className="text-xs p-2 rounded-lg transition-all hover:scale-105 text-left"
-                        style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  className="text-xs p-2 rounded-lg transition-all hover:scale-105 text-left"
+                  style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
                   {preset.name}
                 </button>
               ))}
@@ -202,8 +202,8 @@ export default function PropSimulator() {
                 background: result.passRate >= 70
                   ? 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.02))'
                   : result.passRate >= 50
-                  ? 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.02))'
-                  : 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.02))'
+                    ? 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.02))'
+                    : 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.02))'
               }}>
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-muted)' }}>PASS PROBABILITY</p>
                 <p className="text-6xl font-extrabold mb-2" style={{
@@ -252,13 +252,13 @@ export default function PropSimulator() {
               {/* Expected values */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="stat-card">
-                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Expected $/Trade</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Expected ₹/Trade</p>
                   <p className="text-lg font-bold" style={{ color: result.expectedPnlPerTrade >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
                     ${fmt(result.expectedPnlPerTrade)}
                   </p>
                 </div>
                 <div className="stat-card">
-                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Expected $/Day</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Expected ₹/Day</p>
                   <p className="text-lg font-bold" style={{ color: result.expectedDailyPnl >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
                     ${fmt(result.expectedDailyPnl)}
                   </p>
@@ -279,7 +279,7 @@ export default function PropSimulator() {
                     const style = priorityStyles[s.priority] || priorityStyles.info
                     return (
                       <div key={i} className="glass-card-static p-4 flex items-start gap-3"
-                           style={{ borderLeft: `3px solid ${style.border}` }}>
+                        style={{ borderLeft: `3px solid ${style.border}` }}>
                         <span className="text-lg">{style.icon}</span>
                         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{s.text}</p>
                       </div>

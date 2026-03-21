@@ -246,8 +246,8 @@ export function generatePineScript(description) {
   const exitCondition = conditions.length > 1
     ? `not (${conditions[0]})`
     : conditions.length === 1
-    ? `not (${conditions[0]})`
-    : 'false'
+      ? `not (${conditions[0]})`
+      : 'false'
 
   const strategyName = `QuantPad Strategy`
 

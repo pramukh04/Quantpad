@@ -5,8 +5,8 @@
  * Run prop firm challenge simulation
  * @param {Object} params
  * @param {number} params.winRate - Win rate as decimal (e.g., 0.55)
- * @param {number} params.avgWin - Average winning trade in $ or %
- * @param {number} params.avgLoss - Average losing trade in $ or % (positive number)
+ * @param {number} params.avgWin - Average winning trade in ₹ or %
+ * @param {number} params.avgLoss - Average losing trade in ₹ or % (positive number)
  * @param {number} params.tradesPerDay - Average trades per day
  * @param {number} params.accountSize - Starting account balance
  * @param {number} params.profitTarget - Profit target as % (e.g., 10 for 10%)

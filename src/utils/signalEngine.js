@@ -9,7 +9,7 @@ const SIGNAL_PATTERNS = [
     label: 'Volume Level',
     getGroups: (trades) => {
       const withVol = trades.filter(t => t.volume != null && t.volume > 0)
-      if (withVol.length < 10) return null  
+      if (withVol.length < 10) return null
       const median = withVol.map(t => t.volume).sort((a, b) => a - b)[Math.floor(withVol.length / 2)]
       return {
         groupA: { label: 'High Volume', data: withVol.filter(t => t.volume >= median) },
