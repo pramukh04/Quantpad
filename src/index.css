@@ -302,6 +302,8 @@ textarea.input-field {
 .code-block-content {
   padding: 16px;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
   white-space: pre;
 }
 

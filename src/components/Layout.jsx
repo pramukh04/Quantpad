@@ -6,8 +6,6 @@ const navItems = [
   { path: '/backtest', label: 'Backtest Analyzer', icon: '📈' },
   { path: '/signals', label: 'AI Signal Tester', icon: '🔍' },
   { path: '/pine', label: 'Pine Script Gen', icon: '🌲' },
-  { path: '/factors', label: 'Factor Analyzer', icon: '🧠' },
-  { path: '/prop-sim', label: 'Prop Firm Sim', icon: '🎯' },
   { path: '/strategies', label: 'Strategy Library', icon: '📚' },
 ]
 

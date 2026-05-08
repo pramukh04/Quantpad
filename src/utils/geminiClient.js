@@ -199,3 +199,246 @@ Here is the trader's data context for this conversation: ${tradeContext}`
 
   return { answer }
 }
+
+/**
+ * Generate a complex Pine Script strategy using Gemini
+ * @param {string} description - User's strategy description
+ * @returns {Promise<{code: string, error?: string}>}
+ */
+export async function generatePineScriptWithGemini(description) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured. Add VITE_GEMINI_API_KEY to your .env file.')
+  }
+
+  const systemPrompt = `You are an expert TradingView Pine Script v6 developer. Your ONLY output is raw Pine Script v6 strategy code — no markdown fences, no explanations, no extra text.
+
+=== SYNTAX REFERENCE (Pine Script v6) ===
+Here is a COMPLETE, WORKING example of a Pine Script v6 strategy. Follow this exact structure for ALL output:
+
+//@version=6
+strategy("Example RSI Strategy", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// --- Inputs ---
+rsiLen = input.int(14, title="RSI Length", minval=1)
+rsiOversold = input.int(30, title="Oversold Level", minval=1, maxval=49)
+rsiOverbought = input.int(70, title="Overbought Level", minval=51, maxval=99)
+atrLen = input.int(14, title="ATR Length", minval=1)
+atrMult = input.float(1.5, title="ATR Multiplier", step=0.1)
+
+// --- Calculations ---
+rsiVal = ta.rsi(close, rsiLen)
+atrVal = ta.atr(atrLen)
+
+// --- Entry Conditions ---
+longCond = ta.crossover(rsiVal, rsiOversold)
+shortCond = ta.crossunder(rsiVal, rsiOverbought)
+
+// --- Strategy Orders ---
+if longCond
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", "Long", stop=close - atrMult * atrVal, limit=close + 2 * atrMult * atrVal)
+
+if shortCond
+    strategy.close("Long")
+
+// --- Plots ---
+plot(ta.ema(close, 50), "EMA 50", color=color.yellow, linewidth=2)
+bgcolor(longCond ? color.new(color.green, 90) : na)
+bgcolor(shortCond ? color.new(color.red, 90) : na)
+plotshape(longCond, style=shape.arrowup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(shortCond, style=shape.arrowdown, location=location.abovebar, color=color.red, size=size.small)
+
+// --- Alerts ---
+if longCond
+    alert("Long entry triggered", alert.freq_once_per_bar_close)
+if shortCond
+    alert("Short/Exit signal triggered", alert.freq_once_per_bar_close)
+
+=== RULES ===
+1. Start EVERY script with exactly: //@version=6
+2. Use strategy() — never indicator(). Include overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10.
+3. NEVER use bare 'input' identifier. ALWAYS use: input.int(), input.float(), input.bool(), input.string(), input.timeframe(), input.session().
+4. NEVER use alertcondition() — it causes warnings in strategy scripts. Use alert() inside if blocks instead.
+5. Every script MUST have at least one strategy.entry() call.
+6. Every script MUST have at least one visual output: plot(), plotshape(), bgcolor(), or hline().
+7. For multi-timeframe data use: request.security(syminfo.tickerid, "60", close) — specify the timeframe string explicitly.
+8. NEVER output TODO comments, stubs, or placeholder functions. Write complete, runnable logic every time.
+9. Output ONLY the Pine Script code. No markdown. No code fences. No explanations before or after.`
+
+  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: [{
+        role: 'user',
+        parts: [{ text: `Write a complete Pine Script v6 strategy for the following: ${description}` }]
+      }],
+      generationConfig: {
+        temperature: 0.2, // low temp for deterministic coding
+        maxOutputTokens: 8192,
+      }
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gemini API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  let code = ''
+
+  // === Multi-stage code extraction ===
+  // Stage 1: Try to extract from a ```pine ... ``` fenced block
+  const pineMatch = raw.match(/```pine\s*([\s\S]*?)```/)
+  if (pineMatch) {
+    code = pineMatch[1].trim()
+  }
+
+  // Stage 2: Try to extract from any ``` ... ``` fenced block
+  if (!code) {
+    const fenceMatch = raw.match(/```\s*([\s\S]*?)```/)
+    if (fenceMatch) {
+      code = fenceMatch[1].trim()
+    }
+  }
+
+  // Stage 3: Find //@version= anywhere in the raw response and take everything from there
+  if (!code) {
+    const versionIdx = raw.indexOf('//@version=')
+    if (versionIdx !== -1) {
+      code = raw.slice(versionIdx).trim()
+    }
+  }
+
+  // Stage 4: Fallback to full raw text (last resort)
+  if (!code) {
+    code = raw.trim()
+  }
+
+  // === Normalization ===
+
+  // Force //@version=6
+  if (code.includes('//@version=')) {
+    code = code.replace(/\/\/@version=\d+/, '//@version=6')
+  } else {
+    code = `//@version=6\n${code}`
+  }
+
+  // Remove alertcondition() calls (cause warnings in strategy scripts)
+  code = code.replace(/alertcondition\s*\([^)]*\)\s*/g, '')
+
+  // === Safety nets ===
+
+  // If no strategy order call, append a minimal one
+  const hasOrder = /strategy\.(entry|order|exit|close|cancel)\s*\(/.test(code)
+  if (!hasOrder) {
+    code += `\n\n// Safety fallback: ensure script compiles\nif barstate.islast\n    strategy.entry("Long", strategy.long)`
+  }
+
+  // If no visual output, append a minimal bgcolor
+  const hasPlot = /\b(plot|plotshape|plotcandle|plotbar|barcolor|bgcolor|hline|line\.new|label\.new|box\.new|table\.new)\s*\(/.test(code)
+  if (!hasPlot) {
+    code += `\nbgcolor(color.new(color.blue, 97), title="Signal Active")`
+  }
+
+  return { code, description }
+}
+
+/**
+ * Optimize an existing Pine Script strategy using Gemini
+ * @param {string} code - User's existing Pine Script code
+ * @param {string} goals - User's optimization goals
+ * @returns {Promise<{code: string, error?: string}>}
+ */
+export async function optimizePineScriptWithGemini(code, goals) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured. Add VITE_GEMINI_API_KEY to your .env file.')
+  }
+
+  const systemPrompt = `You are an expert quantitative developer and TradingView Pine Script v6 optimizer. 
+Your task is to take existing Pine Script code and rewrite it to improve its robustness, Profit Factor, and Sharpe Ratio, specifically targeting the user's stated goals.
+
+=== OPTIMIZATION TECHNIQUES ===
+Consider adding (if they make sense for the strategy):
+1. Volatility/Trend filters (e.g., ADX > 20, price > EMA 200).
+2. Advanced risk management (e.g., ATR trailing stops, volatility-adjusted position sizing step=0.1).
+3. Session/Time restrictions (e.g., kill zones, avoiding chop).
+4. Exit optimizations (e.g., exiting early if momentum diverges).
+
+=== RULES ===
+1. Start EVERY script with exactly: //@version=6
+2. Keep the core logic intact, but add necessary filters and risk management.
+3. Use strategy() — never indicator(). Include overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10.
+4. NEVER use bare 'input' identifier. ALWAYS use type-specific inputs like input.int(), input.float(), input.bool().
+5. Write complete, runnable Pine Script code. No omissions.
+6. **CRITICAL:** Output ONLY the raw Pine Script code. No markdown fences like \`\`\`pine, no explanations outside of the code. Start immediately with //@version=6.
+
+If you want to explain your changes, include a brief multi-line comment block AT THE TOP of the script (after the strategy declaration) starting with:
+// --- AI Optimization Notes ---
+// 1. Added ATR trailing stop...
+// 2. Added EMA 200 trend filter...
+`
+
+  const userPrompt = `OPTIMIZATION GOALS: ${goals || 'Maximize Sharpe Ratio, improve Profit Factor, and reduce drawdown.'}\n\n=== EXISTING SCRIPT ===\n${code}`
+
+  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: [{
+        role: 'user',
+        parts: [{ text: userPrompt }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+      }
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gemini API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  let finalCode = ''
+
+  // === Multi-stage code extraction ===
+  const pineMatch = raw.match(/```pine\s*([\s\S]*?)```/)
+  if (pineMatch) finalCode = pineMatch[1].trim()
+  
+  if (!finalCode) {
+    const fenceMatch = raw.match(/```\s*([\s\S]*?)```/)
+    if (fenceMatch) finalCode = fenceMatch[1].trim()
+  }
+
+  if (!finalCode) {
+    const versionIdx = raw.indexOf('//@version=')
+    if (versionIdx !== -1) finalCode = raw.slice(versionIdx).trim()
+  }
+
+  if (!finalCode) finalCode = raw.trim()
+
+  // === Normalization ===
+  if (finalCode.includes('//@version=')) {
+    finalCode = finalCode.replace(/\/\/@version=\d+/, '//@version=6')
+  } else {
+    finalCode = `//@version=6\n${finalCode}`
+  }
+
+  finalCode = finalCode.replace(/alertcondition\s*\([^)]*\)\s*/g, '')
+
+  return { code: finalCode, description: 'Optimized Script' }
+}

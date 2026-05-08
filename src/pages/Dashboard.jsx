@@ -56,7 +56,7 @@ function AnimatedNumber({ value, suffix = '', prefix = '' }) {
 const workflow = [
   { step: '01', title: 'Data Ingestion', desc: 'Securely parse local CSVs without server transmission' },
   { step: '02', title: 'Statistical Analysis', desc: 'Isolate systematic edges via complex mathematical models' },
-  { step: '03', title: 'Factor Testing', desc: 'Identify critical variables shaping your equity curve' },
+  { step: '03', title: 'Strategy Validation', desc: 'Confirm edge stability across multiple market regimes' },
   { step: '04', title: 'Live Execution', desc: 'Export platform-ready code straight to your broker' },
 ]
 
@@ -95,7 +95,7 @@ export default function Dashboard() {
               </h1>
 
               <p className="text-base md:text-lg max-w-xl mb-10 leading-relaxed text-slate-400">
-                A refined quantitative workstation for systematic traders. Analyze strategies, compute factors, and generate execution logic entirely inside your browser. Your data remains completely private.
+                A refined quantitative workstation for systematic traders. Analyze strategies, validate signals, and generate execution logic entirely inside your browser. Your data remains completely private.
               </p>
 
               <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
@@ -166,7 +166,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-12 lg:gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-800">
           {[
             { value: '22', suffix: '+', label: 'Validated Models', desc: 'Pre-built systematic strategies ready to test' },
-            { value: '50', suffix: '+', label: 'Market Factors', desc: 'Complex correlation metrics and analyzers' },
+            { value: '50', suffix: '+', label: 'Market Models', desc: 'Complex correlation metrics and historical benchmarks' },
             { value: '10', suffix: 'K', label: 'Simulations/Sec', desc: 'High-speed Monte Carlo distributions' },
             { value: '0', prefix: '', suffix: 'ms', label: 'Server Latency', desc: 'Runs entirely in your local browser cache' },
           ].map((stat) => (
